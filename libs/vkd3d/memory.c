@@ -1057,6 +1057,7 @@ static HRESULT vkd3d_memory_allocation_init(struct vkd3d_memory_allocation *allo
 {
     const struct vkd3d_vk_device_procs *vk_procs = &device->vk_procs;
     VkMemoryRequirements memory_requirements;
+    VkMemoryPriorityAllocateInfoEXT priority_info;
     VkMemoryAllocateFlagsInfo flags_info;
     VkMemoryPropertyFlags type_flags;
     VkBindBufferMemoryInfo bind_info;
@@ -1154,6 +1155,15 @@ static HRESULT vkd3d_memory_allocation_init(struct vkd3d_memory_allocation *allo
             VK_CALL(vkDestroyBuffer(device->vk_device, allocation->resource.vk_buffer, NULL));
             return E_INVALIDARG;
         }
+    }
+
+    if (device->vk_info.EXT_pageable_device_local_memory &&
+        (type_flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT))
+    {
+        priority_info.sType = VK_STRUCTURE_TYPE_MEMORY_PRIORITY_ALLOCATE_INFO_EXT;
+        priority_info.pNext = NULL;
+        priority_info.priority = info->vk_memory_priority;
+        vk_prepend_struct(&flags_info, &priority_info);
     }
 
     if (host_ptr)
@@ -1530,6 +1540,7 @@ static HRESULT vkd3d_memory_allocator_try_add_chunk(struct vkd3d_memory_allocato
     alloc_info.heap_flags = heap_flags;
     alloc_info.flags = VKD3D_ALLOCATION_FLAG_NO_FALLBACK;
     alloc_info.optional_memory_properties = optional_properties;
+    alloc_info.vk_memory_priority = vkd3d_convert_to_vk_prio(D3D12_RESIDENCY_PRIORITY_NORMAL);
 
     if (!(heap_flags & D3D12_HEAP_FLAG_DENY_BUFFERS))
     {
@@ -1753,6 +1764,7 @@ HRESULT vkd3d_allocate_heap_memory(struct d3d12_device *device, struct vkd3d_mem
     alloc_info.heap_properties = info->heap_desc.Properties;
     alloc_info.heap_flags = info->heap_desc.Flags;
     alloc_info.host_ptr = info->host_ptr;
+    alloc_info.vk_memory_priority = info->vk_memory_priority;
 
     alloc_info.flags |= info->extra_allocation_flags;
     if (!(info->heap_desc.Flags & D3D12_HEAP_FLAG_DENY_BUFFERS))
