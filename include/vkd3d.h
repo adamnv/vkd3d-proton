@@ -165,6 +165,9 @@ HRESULT vkd3d_create_root_signature_deserializer(const void *data, SIZE_T data_s
 
 VkFormat vkd3d_get_vk_format(DXGI_FORMAT format);
 
+uint32_t vkd3d_get_priority_adjust(VkDeviceSize size);
+float vkd3d_convert_to_vk_prio(D3D12_RESIDENCY_PRIORITY d3d12prio);
+
 DXGI_FORMAT vkd3d_get_dxgi_format(VkFormat format);
 
 HRESULT vkd3d_serialize_versioned_root_signature(const D3D12_VERSIONED_ROOT_SIGNATURE_DESC *desc,
