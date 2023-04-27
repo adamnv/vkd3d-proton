@@ -147,6 +147,7 @@ struct vkd3d_vulkan_info
     bool EXT_image_sliced_view_of_3d;
     bool EXT_graphics_pipeline_library;
     bool EXT_fragment_shader_interlock;
+    bool EXT_pageable_device_local_memory;
     /* AMD device extensions */
     bool AMD_buffer_marker;
     bool AMD_device_coherent_memory;
@@ -638,6 +639,7 @@ struct vkd3d_allocate_memory_info
     uint32_t flags;
     VkBufferUsageFlags explicit_global_buffer_usage;
     VkMemoryPropertyFlags optional_memory_properties;
+    float vk_memory_priority;
 };
 
 struct vkd3d_allocate_heap_memory_info
@@ -645,6 +647,7 @@ struct vkd3d_allocate_heap_memory_info
     D3D12_HEAP_DESC heap_desc;
     void *host_ptr;
     uint32_t extra_allocation_flags;
+    float vk_memory_priority; // a heap allocation can actually be a dedicated allocation under the hood (xxx: I think that's true?), in which case we can still fulfil a memory priority
 };
 
 struct vkd3d_allocate_resource_memory_info
@@ -818,6 +821,9 @@ struct d3d12_heap
     D3D12_HEAP_DESC desc;
     struct vkd3d_memory_allocation allocation;
 
+    D3D12_RESIDENCY_PRIORITY priority;
+    bool evicted;
+
     struct d3d12_device *device;
     struct vkd3d_private_store private_store;
 };
@@ -942,6 +948,9 @@ struct d3d12_resource
     struct d3d12_sparse_info sparse;
     struct vkd3d_view_map view_map;
     struct vkd3d_subresource_layout *subresource_layouts;
+
+    D3D12_RESIDENCY_PRIORITY priority;
+    bool evicted;
 
     struct d3d12_device *device;
 
@@ -3962,6 +3971,8 @@ struct vkd3d_physical_device_info
     VkPhysicalDeviceImageSlicedViewOf3DFeaturesEXT image_sliced_view_of_3d_features;
     VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT graphics_pipeline_library_features;
     VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT fragment_shader_interlock_features;
+    VkPhysicalDeviceMemoryPriorityFeaturesEXT memory_priority_features;
+    VkPhysicalDevicePageableDeviceLocalMemoryFeaturesEXT pageable_device_memory_features;
 
     VkPhysicalDeviceFeatures2 features2;
 

@@ -97,6 +97,7 @@ static const struct vkd3d_optional_extension_info optional_device_extensions[] =
     VK_EXTENSION(EXT_IMAGE_SLICED_VIEW_OF_3D, EXT_image_sliced_view_of_3d),
     VK_EXTENSION(EXT_GRAPHICS_PIPELINE_LIBRARY, EXT_graphics_pipeline_library),
     VK_EXTENSION(EXT_FRAGMENT_SHADER_INTERLOCK, EXT_fragment_shader_interlock),
+    VK_EXTENSION(EXT_PAGEABLE_DEVICE_LOCAL_MEMORY, EXT_pageable_device_local_memory),
     /* AMD extensions */
     VK_EXTENSION(AMD_BUFFER_MARKER, AMD_buffer_marker),
     VK_EXTENSION(AMD_DEVICE_COHERENT_MEMORY, AMD_device_coherent_memory),
@@ -1572,6 +1573,17 @@ static void vkd3d_physical_device_info_init(struct vkd3d_physical_device_info *i
                 VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_INTERLOCK_FEATURES_EXT;
         vk_prepend_struct(&info->features2, &info->fragment_shader_interlock_features);
     }
+    
+    if (vulkan_info->EXT_pageable_device_local_memory)
+    {
+        info->memory_priority_features.sType =
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PRIORITY_FEATURES_EXT;
+        vk_prepend_struct(&info->features2, &info->memory_priority_features);
+
+        info->pageable_device_memory_features.sType =
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PAGEABLE_DEVICE_LOCAL_MEMORY_FEATURES_EXT;
+        vk_prepend_struct(&info->features2, &info->pageable_device_memory_features);
+    }
 
     VK_CALL(vkGetPhysicalDeviceFeatures2(device->vk_physical_device, &info->features2));
     VK_CALL(vkGetPhysicalDeviceProperties2(device->vk_physical_device, &info->properties2));
@@ -2627,6 +2639,7 @@ static HRESULT d3d12_device_create_scratch_buffer(struct d3d12_device *device, e
         alloc_info.heap_desc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
         alloc_info.heap_desc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS | D3D12_HEAP_FLAG_CREATE_NOT_ZEROED;
         alloc_info.extra_allocation_flags = VKD3D_ALLOCATION_FLAG_INTERNAL_SCRATCH;
+        alloc_info.vk_memory_priority = vkd3d_convert_to_vk_prio(D3D12_RESIDENCY_PRIORITY_NORMAL);
 
         if (FAILED(hr = vkd3d_allocate_heap_memory(device, &device->memory_allocator,
                 &alloc_info, &scratch->allocation)))
@@ -2644,6 +2657,7 @@ static HRESULT d3d12_device_create_scratch_buffer(struct d3d12_device *device, e
         alloc_info.heap_flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS | D3D12_HEAP_FLAG_CREATE_NOT_ZEROED;
         alloc_info.optional_memory_properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
         alloc_info.flags = VKD3D_ALLOCATION_FLAG_GLOBAL_BUFFER | VKD3D_ALLOCATION_FLAG_INTERNAL_SCRATCH;
+        alloc_info.vk_memory_priority = vkd3d_convert_to_vk_prio(D3D12_RESIDENCY_PRIORITY_NORMAL);
 
         if (FAILED(hr = vkd3d_allocate_memory(device, &device->memory_allocator,
                 &alloc_info, &scratch->allocation)))
@@ -2662,6 +2676,7 @@ static HRESULT d3d12_device_create_scratch_buffer(struct d3d12_device *device, e
         alloc_info.heap_desc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
         alloc_info.heap_desc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS | D3D12_HEAP_FLAG_CREATE_NOT_ZEROED;
         alloc_info.extra_allocation_flags = VKD3D_ALLOCATION_FLAG_INTERNAL_SCRATCH;
+        alloc_info.vk_memory_priority = vkd3d_convert_to_vk_prio(D3D12_RESIDENCY_PRIORITY_NORMAL);
 
         if (FAILED(hr = vkd3d_allocate_heap_memory(device, &device->memory_allocator,
                 &alloc_info, &scratch->allocation)))
@@ -5106,17 +5121,109 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_OpenSharedHandleByName(d3d12_devic
 static HRESULT STDMETHODCALLTYPE d3d12_device_MakeResident(d3d12_device_iface *iface,
         UINT object_count, ID3D12Pageable * const *objects)
 {
-    FIXME_ONCE("iface %p, object_count %u, objects %p stub!\n",
-            iface, object_count, objects);
+    struct d3d12_device *device = impl_from_ID3D12Device(iface);
+    const struct vkd3d_vk_device_procs *vk_procs = &device->vk_procs;
+
+    if (device->vk_info.EXT_pageable_device_local_memory)
+    {
+        uint32_t i;
+        
+        for (i = 0; i < object_count; i++)
+        {
+            ID3D12Heap *heap_iface;
+            ID3D12Resource *resource_iface;
+            ID3D12DeviceChild *object = (ID3D12DeviceChild*)objects[i];
+            VkDeviceMemory memory = VK_NULL_HANDLE;
+            D3D12_RESIDENCY_PRIORITY priority;
+
+            if (SUCCEEDED(ID3D12DeviceChild_QueryInterface(object, &IID_ID3D12Heap, (void**)&heap_iface)))
+            {
+                struct d3d12_heap *heap_object = impl_from_ID3D12Heap(heap_iface);
+
+                memory = heap_object->allocation.device_allocation.vk_memory;
+                priority = heap_object->priority;
+                heap_object->evicted = false;
+
+                ID3D12Heap_Release(heap_iface);
+            }
+            else if (SUCCEEDED(ID3D12DeviceChild_QueryInterface(object, &IID_ID3D12Resource, (void**)&resource_iface)))
+            {
+                struct d3d12_resource *resource_object = impl_from_ID3D12Resource(resource_iface);
+
+                memory = (resource_object->flags & VKD3D_RESOURCE_COMMITTED) ?
+                    resource_object->mem.device_allocation.vk_memory : VK_NULL_HANDLE;
+                priority = resource_object->priority;
+                resource_object->evicted = false;
+
+                ID3D12Resource_Release(resource_iface);
+            }
+
+            if (memory)
+            {
+                VK_CALL(vkSetDeviceMemoryPriorityEXT(device->vk_device, memory, vkd3d_convert_to_vk_prio(priority)));
+            }
+        }
+    }
 
     return S_OK;
+}
+
+static HRESULT STDMETHODCALLTYPE d3d12_device_EnqueueMakeResident(d3d12_device_iface *iface,
+        D3D12_RESIDENCY_FLAGS flags, UINT num_objects, ID3D12Pageable *const *objects,
+        ID3D12Fence *fence_to_signal, UINT64 fence_value_to_signal)
+{
+    /* note: we ignore flags/D3D12_RESIDENCY_FLAG_DENY_OVERBUDGET; it involves
+       knowing if the app will be made over-budget.  We act as if it won't.  Could perhaps
+       use VK_EXT_memory_budget but don't have an app in-hand that clearly cares. */
+    d3d12_device_MakeResident(iface, num_objects, objects);
+
+    /* we don't block anyway - signal the fence immediately */
+    return ID3D12Fence_Signal(fence_to_signal, fence_value_to_signal);
 }
 
 static HRESULT STDMETHODCALLTYPE d3d12_device_Evict(d3d12_device_iface *iface,
         UINT object_count, ID3D12Pageable * const *objects)
 {
-    FIXME_ONCE("iface %p, object_count %u, objects %p stub!\n",
-            iface, object_count, objects);
+    struct d3d12_device *device = impl_from_ID3D12Device(iface);
+    const struct vkd3d_vk_device_procs *vk_procs = &device->vk_procs;
+
+    if (device->vk_info.EXT_pageable_device_local_memory)
+    {
+        uint32_t i;
+        
+        for (i = 0; i < object_count; i++)
+        {
+            ID3D12Heap *heap_iface;
+            ID3D12Resource *resource_iface;
+            ID3D12DeviceChild *object = (ID3D12DeviceChild*)objects[i];
+            VkDeviceMemory memory = VK_NULL_HANDLE;
+
+            if (SUCCEEDED(ID3D12DeviceChild_QueryInterface(object, &IID_ID3D12Heap, (void**)&heap_iface)))
+            {
+                struct d3d12_heap *heap_object = impl_from_ID3D12Heap(heap_iface);
+
+                memory = heap_object->allocation.device_allocation.vk_memory;
+                heap_object->evicted = true;
+
+                ID3D12Heap_Release(heap_iface);
+            }
+            else if (SUCCEEDED(ID3D12DeviceChild_QueryInterface(object, &IID_ID3D12Resource, (void**)&resource_iface)))
+            {
+                struct d3d12_resource *resource_object = impl_from_ID3D12Resource(resource_iface);
+
+                memory = (resource_object->flags & VKD3D_RESOURCE_COMMITTED) ?
+                    resource_object->mem.device_allocation.vk_memory : VK_NULL_HANDLE;
+                resource_object->evicted = true;
+
+                ID3D12Resource_Release(resource_iface);
+            }
+
+            if (memory)
+            {
+                VK_CALL(vkSetDeviceMemoryPriorityEXT(device->vk_device, memory, 0.0f));
+            }
+        }
+    }
 
     return S_OK;
 }
@@ -5410,8 +5517,51 @@ fail:
 static HRESULT STDMETHODCALLTYPE d3d12_device_SetResidencyPriority(d3d12_device_iface *iface,
         UINT object_count, ID3D12Pageable *const *objects, const D3D12_RESIDENCY_PRIORITY *priorities)
 {
-    FIXME_ONCE("iface %p, object_count %u, objects %p, priorities %p stub!\n",
-            iface, object_count, objects, priorities);
+    struct d3d12_device *device = impl_from_ID3D12Device(iface);
+
+    if (device->vk_info.EXT_pageable_device_local_memory)
+    {
+        const struct vkd3d_vk_device_procs *vk_procs = &device->vk_procs;
+        uint32_t i;
+        
+        for (i = 0; i < object_count; i++)
+        {
+            ID3D12Heap *heap_iface;
+            ID3D12Resource *resource_iface;
+            ID3D12DeviceChild *object = (ID3D12DeviceChild*)objects[i];
+            D3D12_RESIDENCY_PRIORITY priority = priorities[i];
+            VkDeviceMemory memory = VK_NULL_HANDLE;
+
+            if (SUCCEEDED(ID3D12DeviceChild_QueryInterface(object, &IID_ID3D12Heap, (void**)&heap_iface)))
+            {
+                struct d3d12_heap *heap_object = impl_from_ID3D12Heap(heap_iface);
+
+                heap_object->priority = priority;
+                memory = heap_object->evicted ?
+                    VK_NULL_HANDLE : heap_object->allocation.device_allocation.vk_memory;
+
+                ID3D12Heap_Release(heap_iface);
+            }
+            else if (SUCCEEDED(ID3D12DeviceChild_QueryInterface(object, &IID_ID3D12Resource, (void**)&resource_iface)))
+            {
+                struct d3d12_resource *resource_object = impl_from_ID3D12Resource(resource_iface);
+
+                resource_object->priority = priority;
+                if (!(resource_object->evicted) &&
+                    (resource_object->flags & VKD3D_RESOURCE_COMMITTED))
+                {
+                    memory = resource_object->mem.device_allocation.vk_memory;
+                }
+
+                ID3D12Resource_Release(resource_iface);
+            }
+
+            if (memory)
+            {
+                VK_CALL(vkSetDeviceMemoryPriorityEXT(device->vk_device, memory, vkd3d_convert_to_vk_prio(priority)));
+            }
+        }
+    }
 
     return S_OK;
 }
@@ -5525,16 +5675,6 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_OpenExistingHeapFromFileMapping(d3
     FIXME("OpenExistingHeapFromFileMapping can only be implemented in native Win32.\n");
     return E_NOTIMPL;
 #endif
-}
-
-static HRESULT STDMETHODCALLTYPE d3d12_device_EnqueueMakeResident(d3d12_device_iface *iface,
-        D3D12_RESIDENCY_FLAGS flags, UINT num_objects, ID3D12Pageable *const *objects,
-        ID3D12Fence *fence_to_signal, UINT64 fence_value_to_signal)
-{
-    FIXME_ONCE("iface %p, flags %#x, num_objects %u, objects %p, fence_to_signal %p, fence_value_to_signal %"PRIu64" stub!\n",
-            iface, flags, num_objects, objects, fence_to_signal, fence_value_to_signal);
-
-    return ID3D12Fence_Signal(fence_to_signal, fence_value_to_signal);
 }
 
 static HRESULT STDMETHODCALLTYPE d3d12_device_CreateCommandList1(d3d12_device_iface *iface,

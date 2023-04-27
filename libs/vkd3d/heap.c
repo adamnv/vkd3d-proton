@@ -259,6 +259,8 @@ static HRESULT d3d12_heap_init(struct d3d12_heap *heap, struct d3d12_device *dev
     heap->refcount = 1;
     heap->desc = *desc;
     heap->device = device;
+    heap->priority = D3D12_RESIDENCY_PRIORITY_NORMAL;
+    heap->evicted = false;
 
     if (!heap->desc.Properties.CreationNodeMask)
         heap->desc.Properties.CreationNodeMask = 1;
@@ -276,6 +278,23 @@ static HRESULT d3d12_heap_init(struct d3d12_heap *heap, struct d3d12_device *dev
 
     if (FAILED(hr = vkd3d_private_store_init(&heap->private_store)))
         return hr;
+
+    if (device->vk_info.EXT_pageable_device_local_memory)
+    {
+        /* this clause isn't trying to reproduce some precise d3d12 behavior,
+           though it's hinted in the public docs that a similar prioritization
+           is done there... and it seems like a good idea anyway. :) */
+        if (heap->desc.Flags & D3D12_HEAP_FLAG_DENY_NON_RT_DS_TEXTURES)
+        {
+            uint32_t adjust = vkd3d_get_priority_adjust(heap->desc.SizeInBytes);
+            heap->priority = D3D12_RESIDENCY_PRIORITY_HIGH | adjust;
+        }
+
+        heap->evicted = ((heap->desc.Flags & D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT) != 0);
+    }
+
+    alloc_info.vk_memory_priority = heap->evicted ?
+        0.0f : vkd3d_convert_to_vk_prio(heap->priority);
 
     if (FAILED(hr = vkd3d_allocate_heap_memory(device,
             &device->memory_allocator, &alloc_info, &heap->allocation)))

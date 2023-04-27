@@ -21,6 +21,7 @@
 #include "vkd3d_private.h"
 
 #include <errno.h>
+#include <math.h>
 
 #define VKD3D_MAX_DXGI_FORMAT DXGI_FORMAT_B4G4R4A4_UNORM
 
@@ -645,6 +646,34 @@ VkFormat vkd3d_get_vk_format(DXGI_FORMAT format)
     }
 
     return VK_FORMAT_UNDEFINED;
+}
+
+/* get some size-based low bits for prioritization in the same way as d3d12 */
+inline uint32_t vkd3d_get_priority_adjust(VkDeviceSize size)
+{
+    return min((size / (10 * 1048576)), 0xFFFFUL);
+}
+
+/* map from 32-bit d3d prio to float (0..1) vk prio.*/
+float vkd3d_convert_to_vk_prio(D3D12_RESIDENCY_PRIORITY d3d12prio)
+{
+    float result;
+
+    /* align D3D12_RESIDENCY_PRIORITY_NORMAL (the default d3d12 prio) with
+       0.5 (the default vk prio) so neither kind wins without explicit prio */
+    if (d3d12prio <= D3D12_RESIDENCY_PRIORITY_NORMAL)
+        result = 0.5f * ((double)d3d12prio) / D3D12_RESIDENCY_PRIORITY_NORMAL;
+    else
+        result = 0.5f + 0.5f * ((double)d3d12prio - D3D12_RESIDENCY_PRIORITY_NORMAL) /
+            (UINT32_MAX - D3D12_RESIDENCY_PRIORITY_NORMAL);
+
+    /* Note: The conversion from a UINT32 d3d priority to a float32 vk priority
+       loses around 9 of the 16 lower-order bits which encode size-based subranking,
+       and thus most of the practical benefit except for massive heaps/resources.
+       Numerous workarounds for this are feasible. */
+
+    /* 0.0f is reserved for explicitly evicted resources */
+    return fmax(fmin(result, 1.f), 0.01f);
 }
 
 DXGI_FORMAT vkd3d_get_dxgi_format(VkFormat format)
