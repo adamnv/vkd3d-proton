@@ -2798,7 +2798,7 @@ static HRESULT d3d12_resource_create(struct d3d12_device *device, uint32_t flags
     object->res.cookie = vkd3d_allocate_cookie();
     spinlock_init(&object->priority.spinlock);
     object->priority.d3d12priority = D3D12_RESIDENCY_PRIORITY_NORMAL;
-    object->priority.evicted = false;
+    object->priority.residency_count = 1;
 #ifdef VKD3D_ENABLE_DESCRIPTOR_QA
     object->view_map.resource_cookie = object->res.cookie;
 #endif

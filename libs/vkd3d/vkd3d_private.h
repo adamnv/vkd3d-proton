@@ -820,7 +820,7 @@ typedef struct
     spinlock_t spinlock; /* covers access to any of the following fields after creation */
 
     D3D12_RESIDENCY_PRIORITY d3d12priority;
-    bool evicted;
+    LONG residency_count;
 } priority_info;
 
 struct d3d12_heap
