@@ -259,6 +259,7 @@ static HRESULT d3d12_heap_init(struct d3d12_heap *heap, struct d3d12_device *dev
     heap->refcount = 1;
     heap->desc = *desc;
     heap->device = device;
+    spinlock_init(&heap->priority.spinlock);
     heap->priority.d3d12priority = D3D12_RESIDENCY_PRIORITY_NORMAL;
     heap->priority.evicted = false;
 
