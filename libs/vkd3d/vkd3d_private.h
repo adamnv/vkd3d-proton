@@ -812,6 +812,13 @@ void vkd3d_memory_allocator_cleanup(struct vkd3d_memory_allocator *allocator, st
 /* ID3D12Heap */
 typedef ID3D12Heap1 d3d12_heap_iface;
 
+typedef struct
+{
+    // todo: lock
+    D3D12_RESIDENCY_PRIORITY d3d12priority;
+    bool evicted;
+} priority_info;
+
 struct d3d12_heap
 {
     d3d12_heap_iface ID3D12Heap_iface;
@@ -821,8 +828,7 @@ struct d3d12_heap
     D3D12_HEAP_DESC desc;
     struct vkd3d_memory_allocation allocation;
 
-    D3D12_RESIDENCY_PRIORITY priority;
-    bool evicted;
+    priority_info priority;
 
     struct d3d12_device *device;
     struct vkd3d_private_store private_store;
@@ -949,8 +955,7 @@ struct d3d12_resource
     struct vkd3d_view_map view_map;
     struct vkd3d_subresource_layout *subresource_layouts;
 
-    D3D12_RESIDENCY_PRIORITY priority;
-    bool evicted;
+    priority_info priority;
 
     struct d3d12_device *device;
 

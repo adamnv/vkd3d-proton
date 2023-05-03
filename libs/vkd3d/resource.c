@@ -2796,8 +2796,8 @@ static HRESULT d3d12_resource_create(struct d3d12_device *device, uint32_t flags
     object->flags = flags;
     object->format = vkd3d_format_from_d3d12_resource_desc(device, desc, 0);
     object->res.cookie = vkd3d_allocate_cookie();
-    object->priority = D3D12_RESIDENCY_PRIORITY_NORMAL;
-    object->evicted = false;
+    object->priority.d3d12priority = D3D12_RESIDENCY_PRIORITY_NORMAL;
+    object->priority.evicted = false;
 #ifdef VKD3D_ENABLE_DESCRIPTOR_QA
     object->view_map.resource_cookie = object->res.cookie;
 #endif
@@ -2836,7 +2836,7 @@ static HRESULT d3d12_resource_create(struct d3d12_device *device, uint32_t flags
             object->desc.Width;
         uint32_t adjust = vkd3d_get_priority_adjust(resource_size);
 
-        object->priority = D3D12_RESIDENCY_PRIORITY_HIGH | adjust;
+        object->priority.d3d12priority = D3D12_RESIDENCY_PRIORITY_HIGH | adjust;
     }
 
     d3d12_device_add_ref(device);
@@ -2936,7 +2936,7 @@ HRESULT d3d12_resource_create_committed(struct d3d12_device *device, const D3D12
         else
             allocate_info.heap_flags |= D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES;
 
-        allocate_info.vk_memory_priority = vkd3d_convert_to_vk_prio(object->priority);
+        allocate_info.vk_memory_priority = vkd3d_convert_to_vk_prio(object->priority.d3d12priority);
 
         if (heap_flags & D3D12_HEAP_FLAG_SHARED)
         {
@@ -3038,7 +3038,7 @@ HRESULT d3d12_resource_create_committed(struct d3d12_device *device, const D3D12
         allocate_info.heap_desc.Alignment = desc->Alignment ? desc->Alignment : D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
         allocate_info.heap_desc.SizeInBytes = align(desc->Width, allocate_info.heap_desc.Alignment);
         allocate_info.heap_desc.Flags = heap_flags | D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
-        allocate_info.vk_memory_priority = vkd3d_convert_to_vk_prio(object->priority);
+        allocate_info.vk_memory_priority = vkd3d_convert_to_vk_prio(object->priority.d3d12priority);
 
         /* Be very careful with suballocated buffers. */
         if ((vkd3d_config_flags & VKD3D_CONFIG_FLAG_ZERO_MEMORY_WORKAROUNDS_COMMITTED_BUFFER_UAV) &&

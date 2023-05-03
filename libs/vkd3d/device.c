@@ -5141,8 +5141,8 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_MakeResident(d3d12_device_iface *i
                 struct d3d12_heap *heap_object = impl_from_ID3D12Heap(heap_iface);
 
                 memory = heap_object->allocation.device_allocation.vk_memory;
-                priority = heap_object->priority;
-                heap_object->evicted = false;
+                priority = heap_object->priority.d3d12priority;
+                heap_object->priority.evicted = false;
 
                 ID3D12Heap_Release(heap_iface);
             }
@@ -5152,8 +5152,8 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_MakeResident(d3d12_device_iface *i
 
                 memory = (resource_object->flags & VKD3D_RESOURCE_COMMITTED) ?
                     resource_object->mem.device_allocation.vk_memory : VK_NULL_HANDLE;
-                priority = resource_object->priority;
-                resource_object->evicted = false;
+                priority = resource_object->priority.d3d12priority;
+                resource_object->priority.evicted = false;
 
                 ID3D12Resource_Release(resource_iface);
             }
@@ -5203,7 +5203,7 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_Evict(d3d12_device_iface *iface,
                 struct d3d12_heap *heap_object = impl_from_ID3D12Heap(heap_iface);
 
                 memory = heap_object->allocation.device_allocation.vk_memory;
-                heap_object->evicted = true;
+                heap_object->priority.evicted = true;
 
                 ID3D12Heap_Release(heap_iface);
             }
@@ -5213,7 +5213,7 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_Evict(d3d12_device_iface *iface,
 
                 memory = (resource_object->flags & VKD3D_RESOURCE_COMMITTED) ?
                     resource_object->mem.device_allocation.vk_memory : VK_NULL_HANDLE;
-                resource_object->evicted = true;
+                resource_object->priority.evicted = true;
 
                 ID3D12Resource_Release(resource_iface);
             }
@@ -5536,8 +5536,8 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_SetResidencyPriority(d3d12_device_
             {
                 struct d3d12_heap *heap_object = impl_from_ID3D12Heap(heap_iface);
 
-                heap_object->priority = priority;
-                memory = heap_object->evicted ?
+                heap_object->priority.d3d12priority = priority;
+                memory = heap_object->priority.evicted ?
                     VK_NULL_HANDLE : heap_object->allocation.device_allocation.vk_memory;
 
                 ID3D12Heap_Release(heap_iface);
@@ -5546,8 +5546,8 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_SetResidencyPriority(d3d12_device_
             {
                 struct d3d12_resource *resource_object = impl_from_ID3D12Resource(resource_iface);
 
-                resource_object->priority = priority;
-                if (!(resource_object->evicted) &&
+                resource_object->priority.d3d12priority = priority;
+                if (!(resource_object->priority.evicted) &&
                     (resource_object->flags & VKD3D_RESOURCE_COMMITTED))
                 {
                     memory = resource_object->mem.device_allocation.vk_memory;

@@ -259,8 +259,8 @@ static HRESULT d3d12_heap_init(struct d3d12_heap *heap, struct d3d12_device *dev
     heap->refcount = 1;
     heap->desc = *desc;
     heap->device = device;
-    heap->priority = D3D12_RESIDENCY_PRIORITY_NORMAL;
-    heap->evicted = false;
+    heap->priority.d3d12priority = D3D12_RESIDENCY_PRIORITY_NORMAL;
+    heap->priority.evicted = false;
 
     if (!heap->desc.Properties.CreationNodeMask)
         heap->desc.Properties.CreationNodeMask = 1;
@@ -287,14 +287,14 @@ static HRESULT d3d12_heap_init(struct d3d12_heap *heap, struct d3d12_device *dev
         if (heap->desc.Flags & D3D12_HEAP_FLAG_DENY_NON_RT_DS_TEXTURES)
         {
             uint32_t adjust = vkd3d_get_priority_adjust(heap->desc.SizeInBytes);
-            heap->priority = D3D12_RESIDENCY_PRIORITY_HIGH | adjust;
+            heap->priority.d3d12priority = D3D12_RESIDENCY_PRIORITY_HIGH | adjust;
         }
 
-        heap->evicted = ((heap->desc.Flags & D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT) != 0);
+        heap->priority.evicted = ((heap->desc.Flags & D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT) != 0);
     }
 
-    alloc_info.vk_memory_priority = heap->evicted ?
-        0.0f : vkd3d_convert_to_vk_prio(heap->priority);
+    alloc_info.vk_memory_priority = heap->priority.evicted ?
+        0.0f : vkd3d_convert_to_vk_prio(heap->priority.d3d12priority);
 
     if (FAILED(hr = vkd3d_allocate_heap_memory(device,
             &device->memory_allocator, &alloc_info, &heap->allocation)))
