@@ -21,7 +21,6 @@
 #include "vkd3d_private.h"
 
 #include <errno.h>
-#include <math.h>
 
 #define VKD3D_MAX_DXGI_FORMAT DXGI_FORMAT_B4G4R4A4_UNORM
 
@@ -673,7 +672,7 @@ float vkd3d_convert_to_vk_prio(D3D12_RESIDENCY_PRIORITY d3d12prio)
        Numerous workarounds for this are feasible. */
 
     /* 0.0f is reserved for explicitly evicted resources */
-    return fmax(fmin(result, 1.f), 0.01f);
+    return max(min(result, 1.f), 0.01f);
 }
 
 DXGI_FORMAT vkd3d_get_dxgi_format(VkFormat format)
