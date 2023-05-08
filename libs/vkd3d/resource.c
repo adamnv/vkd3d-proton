@@ -2827,11 +2827,9 @@ static HRESULT d3d12_resource_create(struct d3d12_device *device, uint32_t flags
     }
 
     if ((flags & VKD3D_RESOURCE_COMMITTED) &&
-        (device->vk_info.EXT_pageable_device_local_memory) &&
+        (device->vk_info.EXT_memory_priority) &&
         (desc->Flags & high_priority_resource_flags))
     {
-        /* default prioritization is D3D12_RESIDENCY_PRIORITY_HIGH + size-based bits
-           see: https://learn.microsoft.com/en-us/windows/win32/direct3d12/residency#default-priority-algorithm */
         size_t resource_size = d3d12_resource_is_texture(object) ?
             vkd3d_compute_resource_layouts_from_desc(device, &object->desc, NULL) :
             object->desc.Width;

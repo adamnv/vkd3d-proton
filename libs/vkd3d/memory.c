@@ -1157,7 +1157,7 @@ static HRESULT vkd3d_memory_allocation_init(struct vkd3d_memory_allocation *allo
         }
     }
 
-    if (device->vk_info.EXT_pageable_device_local_memory &&
+    if (device->vk_info.EXT_memory_priority &&
         (type_flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT))
     {
         priority_info.sType = VK_STRUCTURE_TYPE_MEMORY_PRIORITY_ALLOCATE_INFO_EXT;
