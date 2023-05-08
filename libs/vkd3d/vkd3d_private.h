@@ -648,7 +648,7 @@ struct vkd3d_allocate_heap_memory_info
     D3D12_HEAP_DESC heap_desc;
     void *host_ptr;
     uint32_t extra_allocation_flags;
-    float vk_memory_priority; // a heap allocation can actually be a dedicated allocation under the hood (xxx: I think that's true?), in which case we can still fulfil a memory priority
+    float vk_memory_priority;
 };
 
 struct vkd3d_allocate_resource_memory_info
