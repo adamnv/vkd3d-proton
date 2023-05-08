@@ -648,7 +648,7 @@ VkFormat vkd3d_get_vk_format(DXGI_FORMAT format)
 }
 
 /* Get some size-based low bits for memory prioritization in the same
-   way as d3d12;d3d12 bumps certain resource priorities to
+   way as d3d12; d3d12 bumps certain resource priorities to
    D3D12_RESIDENCY_PRIORITY_HIGH + size-based bits (10MB resolution)
    see: https://learn.microsoft.com/en-us/windows/win32/direct3d12/residency#default-priority-algorithm */
 uint32_t vkd3d_get_priority_adjust(VkDeviceSize size)
