@@ -148,6 +148,7 @@ struct vkd3d_vulkan_info
     bool EXT_graphics_pipeline_library;
     bool EXT_fragment_shader_interlock;
     bool EXT_pageable_device_local_memory;
+    bool EXT_memory_priority;
     /* AMD device extensions */
     bool AMD_buffer_marker;
     bool AMD_device_coherent_memory;

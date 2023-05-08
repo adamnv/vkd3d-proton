@@ -98,6 +98,7 @@ static const struct vkd3d_optional_extension_info optional_device_extensions[] =
     VK_EXTENSION(EXT_GRAPHICS_PIPELINE_LIBRARY, EXT_graphics_pipeline_library),
     VK_EXTENSION(EXT_FRAGMENT_SHADER_INTERLOCK, EXT_fragment_shader_interlock),
     VK_EXTENSION(EXT_PAGEABLE_DEVICE_LOCAL_MEMORY, EXT_pageable_device_local_memory),
+    VK_EXTENSION(EXT_MEMORY_PRIORITY, EXT_memory_priority),
     /* AMD extensions */
     VK_EXTENSION(AMD_BUFFER_MARKER, AMD_buffer_marker),
     VK_EXTENSION(AMD_DEVICE_COHERENT_MEMORY, AMD_device_coherent_memory),
