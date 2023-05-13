@@ -656,7 +656,7 @@ uint32_t vkd3d_get_priority_adjust(VkDeviceSize size)
     return min((size / (10 * 1048576)), 0xFFFFUL);
 }
 
-/* map from 32-bit d3d prio to float (0..1) vk prio.*/
+/* map from 32-bit d3d prio to float (0..1) vk prio. */
 float vkd3d_convert_to_vk_prio(D3D12_RESIDENCY_PRIORITY d3d12prio)
 {
     float result;
