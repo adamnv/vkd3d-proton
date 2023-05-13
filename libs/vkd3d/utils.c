@@ -656,6 +656,17 @@ uint32_t vkd3d_get_priority_adjust(VkDeviceSize size)
     return min((size / (10 * 1048576)), 0xFFFFUL);
 }
 
+float vkd3d_lerp_u32_to_float(uint32_t uval, uint32_t ustart, uint32_t uend, float fstart, float fend)
+{
+    float a;
+
+    if (uval <= ustart) return fstart;
+    else if (uval >= uend) return fend;
+    
+    a = (uval - ustart) / (float)(uend - ustart);
+    return fstart * (1.0f - a) + (fend * a);
+}
+
 /* map from 32-bit d3d prio to float (0..1) vk prio. */
 float vkd3d_convert_to_vk_prio(D3D12_RESIDENCY_PRIORITY d3d12prio)
 {
@@ -664,18 +675,26 @@ float vkd3d_convert_to_vk_prio(D3D12_RESIDENCY_PRIORITY d3d12prio)
     /* align D3D12_RESIDENCY_PRIORITY_NORMAL (the default d3d12 prio) with
        0.5 (the default vk prio) so neither kind wins without explicit prio */
     if (d3d12prio <= D3D12_RESIDENCY_PRIORITY_NORMAL)
-        result = 0.5f * ((double)d3d12prio) / D3D12_RESIDENCY_PRIORITY_NORMAL;
+        result = vkd3d_lerp_u32_to_float(d3d12prio,
+            D3D12_RESIDENCY_PRIORITY_MINIMUM, D3D12_RESIDENCY_PRIORITY_NORMAL,
+            0.001f, 0.500f);
+    else if (d3d12prio <= D3D12_RESIDENCY_PRIORITY_HIGH)
+        result = vkd3d_lerp_u32_to_float(d3d12prio,
+            D3D12_RESIDENCY_PRIORITY_NORMAL, D3D12_RESIDENCY_PRIORITY_HIGH,
+            0.500f, 0.520f);
     else
-        result = 0.5f + 0.5f * ((double)d3d12prio - D3D12_RESIDENCY_PRIORITY_NORMAL) /
-            (UINT32_MAX - D3D12_RESIDENCY_PRIORITY_NORMAL);
+        result = vkd3d_lerp_u32_to_float(d3d12prio,
+            D3D12_RESIDENCY_PRIORITY_HIGH, D3D12_RESIDENCY_PRIORITY_MAXIMUM,
+            0.521f, 1.000f);
 
     /* Note: The conversion from a UINT32 d3d priority to a float32 vk priority
        loses around 9 of the 16 lower-order bits which encode size-based subranking,
        and thus most of the practical benefit except for massive heaps/resources.
-       Numerous workarounds for this are feasible. */
+       Numerous workarounds for this are feasible.  The separation between 0.520
+       and 0.521 in the output mapping above is one of them. */
 
     /* 0.0f is reserved for explicitly evicted resources */
-    return max(min(result, 1.f), 0.01f);
+    return max(min(result, 1.f), 0.001f);
 }
 
 DXGI_FORMAT vkd3d_get_dxgi_format(VkFormat format)
