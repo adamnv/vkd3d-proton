@@ -5549,30 +5549,36 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_SetResidencyPriority(d3d12_device_
         {
             ID3D12Heap *heap_iface;
             ID3D12Resource *resource_iface;
-            ID3D12DeviceChild *object = (ID3D12DeviceChild*)objects[i];
             D3D12_RESIDENCY_PRIORITY priority = priorities[i];
             VkDeviceMemory memory = VK_NULL_HANDLE;
 
-            if (SUCCEEDED(ID3D12DeviceChild_QueryInterface(object, &IID_ID3D12Heap, (void**)&heap_iface)))
+            if (SUCCEEDED(ID3D12Pageable_QueryInterface(objects[i], &IID_ID3D12Heap, (void**)&heap_iface)))
             {
                 struct d3d12_heap *heap_object = impl_from_ID3D12Heap(heap_iface);
 
+                if (!heap_object->priority.allows_dynamic_residency)
+                    continue;
+
                 spinlock_acquire(&heap_object->priority.spinlock);
                 heap_object->priority.d3d12priority = priority;
-                memory = (0 == heap_object->priority.residency_count) ?
-                    VK_NULL_HANDLE : heap_object->allocation.device_allocation.vk_memory;
+                if (heap_object->priority.residency_count)
+                {
+                    memory = heap_object->allocation.device_allocation.vk_memory;
+                }
                 spinlock_release(&heap_object->priority.spinlock);
 
                 ID3D12Heap_Release(heap_iface);
             }
-            else if (SUCCEEDED(ID3D12DeviceChild_QueryInterface(object, &IID_ID3D12Resource, (void**)&resource_iface)))
+            else if (SUCCEEDED(ID3D12Pageable_QueryInterface(objects[i], &IID_ID3D12Resource, (void**)&resource_iface)))
             {
                 struct d3d12_resource *resource_object = impl_from_ID3D12Resource(resource_iface);
 
+                if (!resource_object->priority.allows_dynamic_residency)
+                    continue;
+
                 spinlock_acquire(&resource_object->priority.spinlock);
                 resource_object->priority.d3d12priority = priority;
-                if (resource_object->priority.residency_count &&
-                    (resource_object->flags & VKD3D_RESOURCE_COMMITTED))
+                if (resource_object->priority.residency_count)
                 {
                     memory = resource_object->mem.device_allocation.vk_memory;
                 }
