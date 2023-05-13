@@ -5133,11 +5133,10 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_MakeResident(d3d12_device_iface *i
         {
             ID3D12Heap *heap_iface;
             ID3D12Resource *resource_iface;
-            ID3D12DeviceChild *object = (ID3D12DeviceChild*)objects[i];
             VkDeviceMemory memory = VK_NULL_HANDLE;
             D3D12_RESIDENCY_PRIORITY priority;
 
-            if (SUCCEEDED(ID3D12DeviceChild_QueryInterface(object, &IID_ID3D12Heap, (void**)&heap_iface)))
+            if (SUCCEEDED(ID3D12Pageable_QueryInterface(objects[i], &IID_ID3D12Heap, (void**)&heap_iface)))
             {
                 struct d3d12_heap *heap_object = impl_from_ID3D12Heap(heap_iface);
 
@@ -5149,7 +5148,7 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_MakeResident(d3d12_device_iface *i
 
                 ID3D12Heap_Release(heap_iface);
             }
-            else if (SUCCEEDED(ID3D12DeviceChild_QueryInterface(object, &IID_ID3D12Resource, (void**)&resource_iface)))
+            else if (SUCCEEDED(ID3D12Pageable_QueryInterface(objects[i], &IID_ID3D12Resource, (void**)&resource_iface)))
             {
                 struct d3d12_resource *resource_object = impl_from_ID3D12Resource(resource_iface);
 
@@ -5200,11 +5199,10 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_Evict(d3d12_device_iface *iface,
         {
             ID3D12Heap *heap_iface;
             ID3D12Resource *resource_iface;
-            ID3D12DeviceChild *object = (ID3D12DeviceChild*)objects[i];
             VkDeviceMemory memory = VK_NULL_HANDLE;
             bool now_evicted = false;
 
-            if (SUCCEEDED(ID3D12DeviceChild_QueryInterface(object, &IID_ID3D12Heap, (void**)&heap_iface)))
+            if (SUCCEEDED(ID3D12Pageable_QueryInterface(objects[i], &IID_ID3D12Heap, (void**)&heap_iface)))
             {
                 struct d3d12_heap *heap_object = impl_from_ID3D12Heap(heap_iface);
 
@@ -5215,7 +5213,7 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_Evict(d3d12_device_iface *iface,
 
                 ID3D12Heap_Release(heap_iface);
             }
-            else if (SUCCEEDED(ID3D12DeviceChild_QueryInterface(object, &IID_ID3D12Resource, (void**)&resource_iface)))
+            else if (SUCCEEDED(ID3D12Pageable_QueryInterface(objects[i], &IID_ID3D12Resource, (void**)&resource_iface)))
             {
                 struct d3d12_resource *resource_object = impl_from_ID3D12Resource(resource_iface);
 
