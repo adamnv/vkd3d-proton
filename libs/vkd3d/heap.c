@@ -259,6 +259,7 @@ static HRESULT d3d12_heap_init(struct d3d12_heap *heap, struct d3d12_device *dev
     heap->refcount = 1;
     heap->desc = *desc;
     heap->device = device;
+    heap->priority.allows_dynamic_residency = false;
     spinlock_init(&heap->priority.spinlock);
     heap->priority.d3d12priority = D3D12_RESIDENCY_PRIORITY_NORMAL;
     heap->priority.residency_count = 1;
@@ -304,6 +305,11 @@ static HRESULT d3d12_heap_init(struct d3d12_heap *heap, struct d3d12_device *dev
         vkd3d_private_store_destroy(&heap->private_store);
         return hr;
     }
+
+    heap->priority.allows_dynamic_residency = 
+        device->vk_info.EXT_pageable_device_local_memory &&
+        heap->allocation.chunk == NULL /* not suballocated */ &&
+        device->memory_properties.memoryTypes[heap->allocation.device_allocation.vk_memory_type].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
     d3d12_device_add_ref(heap->device);
     return S_OK;

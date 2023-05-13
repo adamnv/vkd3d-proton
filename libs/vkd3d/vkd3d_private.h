@@ -818,6 +818,8 @@ typedef ID3D12Heap1 d3d12_heap_iface;
 
 typedef struct
 {
+    bool allows_dynamic_residency;
+
     spinlock_t spinlock; /* covers access to any of the following fields after creation */
 
     D3D12_RESIDENCY_PRIORITY d3d12priority;

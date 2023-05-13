@@ -5140,6 +5140,9 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_MakeResident(d3d12_device_iface *i
             {
                 struct d3d12_heap *heap_object = impl_from_ID3D12Heap(heap_iface);
 
+                if (!heap_object->priority.allows_dynamic_residency)
+                    continue;
+
                 memory = heap_object->allocation.device_allocation.vk_memory;
                 spinlock_acquire(&heap_object->priority.spinlock);
                 priority = heap_object->priority.d3d12priority;
@@ -5152,8 +5155,10 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_MakeResident(d3d12_device_iface *i
             {
                 struct d3d12_resource *resource_object = impl_from_ID3D12Resource(resource_iface);
 
-                memory = (resource_object->flags & VKD3D_RESOURCE_COMMITTED) ?
-                    resource_object->mem.device_allocation.vk_memory : VK_NULL_HANDLE;
+                if (!resource_object->priority.allows_dynamic_residency)
+                    continue;
+
+                memory = resource_object->mem.device_allocation.vk_memory;
                 spinlock_acquire(&resource_object->priority.spinlock);
                 priority = resource_object->priority.d3d12priority;
                 resource_object->priority.residency_count++;
@@ -5206,6 +5211,9 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_Evict(d3d12_device_iface *iface,
             {
                 struct d3d12_heap *heap_object = impl_from_ID3D12Heap(heap_iface);
 
+                if (!heap_object->priority.allows_dynamic_residency)
+                    continue;
+
                 memory = heap_object->allocation.device_allocation.vk_memory;
                 spinlock_acquire(&heap_object->priority.spinlock);
                 now_evicted = (0 == --heap_object->priority.residency_count);
@@ -5217,8 +5225,10 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_Evict(d3d12_device_iface *iface,
             {
                 struct d3d12_resource *resource_object = impl_from_ID3D12Resource(resource_iface);
 
-                memory = (resource_object->flags & VKD3D_RESOURCE_COMMITTED) ?
-                    resource_object->mem.device_allocation.vk_memory : VK_NULL_HANDLE;
+                if (!resource_object->priority.allows_dynamic_residency)
+                    continue;
+
+                memory = resource_object->mem.device_allocation.vk_memory;
                 spinlock_acquire(&resource_object->priority.spinlock);
                 now_evicted = (0 == --resource_object->priority.residency_count);
                 spinlock_release(&resource_object->priority.spinlock);

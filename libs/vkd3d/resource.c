@@ -17,6 +17,7 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
+#include "vulkan/vulkan_core.h"
 #define VKD3D_DBG_CHANNEL VKD3D_DBG_CHANNEL_API
 
 #include <float.h>
@@ -2797,6 +2798,7 @@ static HRESULT d3d12_resource_create(struct d3d12_device *device, uint32_t flags
     object->format = vkd3d_format_from_d3d12_resource_desc(device, desc, 0);
     object->res.cookie = vkd3d_allocate_cookie();
     spinlock_init(&object->priority.spinlock);
+    object->priority.allows_dynamic_residency = false;
     object->priority.d3d12priority = D3D12_RESIDENCY_PRIORITY_NORMAL;
     object->priority.residency_count = 1;
 #ifdef VKD3D_ENABLE_DESCRIPTOR_QA
@@ -3054,6 +3056,11 @@ HRESULT d3d12_resource_create_committed(struct d3d12_device *device, const D3D12
         object->res.vk_buffer = object->mem.resource.vk_buffer;
         object->res.va = object->mem.resource.va;
     }
+
+    object->priority.allows_dynamic_residency = 
+        device->vk_info.EXT_pageable_device_local_memory &&
+        object->mem.chunk == NULL /* not suballocated */ &&
+        device->memory_properties.memoryTypes[object->mem.device_allocation.vk_memory_type].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
     *resource = object;
     return S_OK;
