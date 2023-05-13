@@ -2829,7 +2829,7 @@ static HRESULT d3d12_resource_create(struct d3d12_device *device, uint32_t flags
     }
 
     if ((flags & VKD3D_RESOURCE_COMMITTED) &&
-        (device->vk_info.EXT_memory_priority) &&
+        device->device_info.memory_priority_features.memoryPriority &&
         (desc->Flags & high_priority_resource_flags))
     {
         size_t resource_size = d3d12_resource_is_texture(object) ?
@@ -3058,7 +3058,7 @@ HRESULT d3d12_resource_create_committed(struct d3d12_device *device, const D3D12
     }
 
     object->priority.allows_dynamic_residency = 
-        device->vk_info.EXT_pageable_device_local_memory &&
+        device->device_info.pageable_device_memory_features.pageableDeviceLocalMemory &&
         object->mem.chunk == NULL /* not suballocated */ &&
         device->memory_properties.memoryTypes[object->mem.device_allocation.vk_memory_type].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 

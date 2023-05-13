@@ -1575,12 +1575,15 @@ static void vkd3d_physical_device_info_init(struct vkd3d_physical_device_info *i
         vk_prepend_struct(&info->features2, &info->fragment_shader_interlock_features);
     }
     
-    if (vulkan_info->EXT_pageable_device_local_memory)
+    if (vulkan_info->EXT_memory_priority)
     {
         info->memory_priority_features.sType =
             VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PRIORITY_FEATURES_EXT;
         vk_prepend_struct(&info->features2, &info->memory_priority_features);
+    }
 
+    if (vulkan_info->EXT_pageable_device_local_memory)
+    {
         info->pageable_device_memory_features.sType =
             VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PAGEABLE_DEVICE_LOCAL_MEMORY_FEATURES_EXT;
         vk_prepend_struct(&info->features2, &info->pageable_device_memory_features);
@@ -5125,7 +5128,7 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_MakeResident(d3d12_device_iface *i
     struct d3d12_device *device = impl_from_ID3D12Device(iface);
     const struct vkd3d_vk_device_procs *vk_procs = &device->vk_procs;
 
-    if (device->vk_info.EXT_pageable_device_local_memory)
+    if (device->device_info.pageable_device_memory_features.pageableDeviceLocalMemory)
     {
         uint32_t i;
         
@@ -5196,7 +5199,7 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_Evict(d3d12_device_iface *iface,
     struct d3d12_device *device = impl_from_ID3D12Device(iface);
     const struct vkd3d_vk_device_procs *vk_procs = &device->vk_procs;
 
-    if (device->vk_info.EXT_pageable_device_local_memory)
+    if (device->device_info.pageable_device_memory_features.pageableDeviceLocalMemory)
     {
         uint32_t i;
         
@@ -5537,7 +5540,7 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_SetResidencyPriority(d3d12_device_
 {
     struct d3d12_device *device = impl_from_ID3D12Device(iface);
 
-    if (device->vk_info.EXT_pageable_device_local_memory)
+    if (device->device_info.pageable_device_memory_features.pageableDeviceLocalMemory)
     {
         const struct vkd3d_vk_device_procs *vk_procs = &device->vk_procs;
         uint32_t i;
