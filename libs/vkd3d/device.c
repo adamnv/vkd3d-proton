@@ -5131,10 +5131,10 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_MakeResident(d3d12_device_iface *i
         
         for (i = 0; i < object_count; i++)
         {
-            ID3D12Heap *heap_iface;
-            ID3D12Resource *resource_iface;
             VkDeviceMemory memory = VK_NULL_HANDLE;
             D3D12_RESIDENCY_PRIORITY priority;
+            ID3D12Resource *resource_iface;
+            ID3D12Heap *heap_iface;
 
             if (SUCCEEDED(ID3D12Pageable_QueryInterface(objects[i], &IID_ID3D12Heap, (void**)&heap_iface)))
             {
@@ -5197,10 +5197,10 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_Evict(d3d12_device_iface *iface,
         
         for (i = 0; i < object_count; i++)
         {
-            ID3D12Heap *heap_iface;
-            ID3D12Resource *resource_iface;
             VkDeviceMemory memory = VK_NULL_HANDLE;
+            ID3D12Resource *resource_iface;
             bool now_evicted = false;
+            ID3D12Heap *heap_iface;
 
             if (SUCCEEDED(ID3D12Pageable_QueryInterface(objects[i], &IID_ID3D12Heap, (void**)&heap_iface)))
             {
