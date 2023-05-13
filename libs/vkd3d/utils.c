@@ -689,7 +689,7 @@ float vkd3d_convert_to_vk_prio(D3D12_RESIDENCY_PRIORITY d3d12prio)
 
     /* Note: The conversion from a UINT32 d3d priority to a float32 vk priority
        loses around 9 of the 16 lower-order bits which encode size-based subranking,
-       and thus most of the practical benefit except for massive heaps/resources.
+       and thus most of the practical benefit (except for massive heaps/resources).
        Numerous workarounds for this are feasible.  The separation between 0.520
        and 0.521 in the output mapping above is one of them. */
 
