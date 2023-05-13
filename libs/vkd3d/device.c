@@ -5547,10 +5547,10 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_SetResidencyPriority(d3d12_device_
         
         for (i = 0; i < object_count; i++)
         {
-            ID3D12Heap *heap_iface;
-            ID3D12Resource *resource_iface;
             D3D12_RESIDENCY_PRIORITY priority = priorities[i];
             VkDeviceMemory memory = VK_NULL_HANDLE;
+            ID3D12Resource *resource_iface;
+            ID3D12Heap *heap_iface;
 
             if (SUCCEEDED(ID3D12Pageable_QueryInterface(objects[i], &IID_ID3D12Heap, (void**)&heap_iface)))
             {
