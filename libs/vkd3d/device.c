@@ -5143,14 +5143,14 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_MakeResident(d3d12_device_iface *i
             {
                 struct d3d12_heap *heap_object = impl_from_ID3D12Heap(heap_iface);
 
-                if (!heap_object->priority.allows_dynamic_residency)
-                    continue;
-
-                memory = heap_object->allocation.device_allocation.vk_memory;
-                spinlock_acquire(&heap_object->priority.spinlock);
-                priority = heap_object->priority.d3d12priority;
-                heap_object->priority.residency_count++;
-                spinlock_release(&heap_object->priority.spinlock);
+                if (heap_object->priority.allows_dynamic_residency)
+                {
+                    memory = heap_object->allocation.device_allocation.vk_memory;
+                    spinlock_acquire(&heap_object->priority.spinlock);
+                    priority = heap_object->priority.d3d12priority;
+                    heap_object->priority.residency_count++;
+                    spinlock_release(&heap_object->priority.spinlock);
+                }
 
                 ID3D12Heap_Release(heap_iface);
             }
@@ -5158,14 +5158,14 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_MakeResident(d3d12_device_iface *i
             {
                 struct d3d12_resource *resource_object = impl_from_ID3D12Resource(resource_iface);
 
-                if (!resource_object->priority.allows_dynamic_residency)
-                    continue;
-
-                memory = resource_object->mem.device_allocation.vk_memory;
-                spinlock_acquire(&resource_object->priority.spinlock);
-                priority = resource_object->priority.d3d12priority;
-                resource_object->priority.residency_count++;
-                spinlock_release(&resource_object->priority.spinlock);
+                if (resource_object->priority.allows_dynamic_residency)
+                {
+                    memory = resource_object->mem.device_allocation.vk_memory;
+                    spinlock_acquire(&resource_object->priority.spinlock);
+                    priority = resource_object->priority.d3d12priority;
+                    resource_object->priority.residency_count++;
+                    spinlock_release(&resource_object->priority.spinlock);
+                }
 
                 ID3D12Resource_Release(resource_iface);
             }
@@ -5214,13 +5214,13 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_Evict(d3d12_device_iface *iface,
             {
                 struct d3d12_heap *heap_object = impl_from_ID3D12Heap(heap_iface);
 
-                if (!heap_object->priority.allows_dynamic_residency)
-                    continue;
-
-                memory = heap_object->allocation.device_allocation.vk_memory;
-                spinlock_acquire(&heap_object->priority.spinlock);
-                now_evicted = (0 == --heap_object->priority.residency_count);
-                spinlock_release(&heap_object->priority.spinlock);
+                if (heap_object->priority.allows_dynamic_residency)
+                {
+                    memory = heap_object->allocation.device_allocation.vk_memory;
+                    spinlock_acquire(&heap_object->priority.spinlock);
+                    now_evicted = (0 == --heap_object->priority.residency_count);
+                    spinlock_release(&heap_object->priority.spinlock);
+                }
 
                 ID3D12Heap_Release(heap_iface);
             }
@@ -5228,13 +5228,13 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_Evict(d3d12_device_iface *iface,
             {
                 struct d3d12_resource *resource_object = impl_from_ID3D12Resource(resource_iface);
 
-                if (!resource_object->priority.allows_dynamic_residency)
-                    continue;
-
-                memory = resource_object->mem.device_allocation.vk_memory;
-                spinlock_acquire(&resource_object->priority.spinlock);
-                now_evicted = (0 == --resource_object->priority.residency_count);
-                spinlock_release(&resource_object->priority.spinlock);
+                if (resource_object->priority.allows_dynamic_residency)
+                {
+                    memory = resource_object->mem.device_allocation.vk_memory;
+                    spinlock_acquire(&resource_object->priority.spinlock);
+                    now_evicted = (0 == --resource_object->priority.residency_count);
+                    spinlock_release(&resource_object->priority.spinlock);
+                }
 
                 ID3D12Resource_Release(resource_iface);
             }
@@ -5556,16 +5556,16 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_SetResidencyPriority(d3d12_device_
             {
                 struct d3d12_heap *heap_object = impl_from_ID3D12Heap(heap_iface);
 
-                if (!heap_object->priority.allows_dynamic_residency)
-                    continue;
-
-                spinlock_acquire(&heap_object->priority.spinlock);
-                heap_object->priority.d3d12priority = priority;
-                if (heap_object->priority.residency_count)
+                if (heap_object->priority.allows_dynamic_residency)
                 {
-                    memory = heap_object->allocation.device_allocation.vk_memory;
+                    spinlock_acquire(&heap_object->priority.spinlock);
+                    heap_object->priority.d3d12priority = priority;
+                    if (heap_object->priority.residency_count)
+                    {
+                        memory = heap_object->allocation.device_allocation.vk_memory;
+                    }
+                    spinlock_release(&heap_object->priority.spinlock);
                 }
-                spinlock_release(&heap_object->priority.spinlock);
 
                 ID3D12Heap_Release(heap_iface);
             }
@@ -5573,16 +5573,16 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_SetResidencyPriority(d3d12_device_
             {
                 struct d3d12_resource *resource_object = impl_from_ID3D12Resource(resource_iface);
 
-                if (!resource_object->priority.allows_dynamic_residency)
-                    continue;
-
-                spinlock_acquire(&resource_object->priority.spinlock);
-                resource_object->priority.d3d12priority = priority;
-                if (resource_object->priority.residency_count)
+                if (resource_object->priority.allows_dynamic_residency)
                 {
-                    memory = resource_object->mem.device_allocation.vk_memory;
+                    spinlock_acquire(&resource_object->priority.spinlock);
+                    resource_object->priority.d3d12priority = priority;
+                    if (resource_object->priority.residency_count)
+                    {
+                        memory = resource_object->mem.device_allocation.vk_memory;
+                    }
+                    spinlock_release(&resource_object->priority.spinlock);
                 }
-                spinlock_release(&resource_object->priority.spinlock);
 
                 ID3D12Resource_Release(resource_iface);
             }
