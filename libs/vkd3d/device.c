@@ -5144,7 +5144,7 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_MakeResident(d3d12_device_iface *i
                 struct d3d12_heap *heap_object = impl_from_ID3D12Heap(heap_iface);
 
                 if (!heap_object->priority.allows_dynamic_residency)
-                    {TRACE("prio: mr: heap not dynamic\n");continue;}
+                    continue;
 
                 memory = heap_object->allocation.device_allocation.vk_memory;
                 spinlock_acquire(&heap_object->priority.spinlock);
@@ -5159,7 +5159,7 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_MakeResident(d3d12_device_iface *i
                 struct d3d12_resource *resource_object = impl_from_ID3D12Resource(resource_iface);
 
                 if (!resource_object->priority.allows_dynamic_residency)
-                    {TRACE("prio: mr: resource not dynamic\n");continue;}
+                    continue;
 
                 memory = resource_object->mem.device_allocation.vk_memory;
                 spinlock_acquire(&resource_object->priority.spinlock);
@@ -5172,10 +5172,8 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_MakeResident(d3d12_device_iface *i
 
             if (memory)
             {
-                TRACE("prio: mr: new priority is %x\n", priority);
                 VK_CALL(vkSetDeviceMemoryPriorityEXT(device->vk_device, memory, vkd3d_convert_to_vk_prio(priority)));
             }
-            else TRACE("prio: mr: no memory!\n");
         }
     }
 
@@ -5217,7 +5215,7 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_Evict(d3d12_device_iface *iface,
                 struct d3d12_heap *heap_object = impl_from_ID3D12Heap(heap_iface);
 
                 if (!heap_object->priority.allows_dynamic_residency)
-                    {TRACE("prio: e: heap not dynamic\n");continue;}
+                    continue;
 
                 memory = heap_object->allocation.device_allocation.vk_memory;
                 spinlock_acquire(&heap_object->priority.spinlock);
@@ -5231,7 +5229,7 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_Evict(d3d12_device_iface *iface,
                 struct d3d12_resource *resource_object = impl_from_ID3D12Resource(resource_iface);
 
                 if (!resource_object->priority.allows_dynamic_residency)
-                    {TRACE("prio: e: resource not dynamic\n");continue;}
+                    continue;
 
                 memory = resource_object->mem.device_allocation.vk_memory;
                 spinlock_acquire(&resource_object->priority.spinlock);
@@ -5243,10 +5241,8 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_Evict(d3d12_device_iface *iface,
 
             if (memory && now_evicted)
             {
-                TRACE("prio: e: evicted!\n");
                 VK_CALL(vkSetDeviceMemoryPriorityEXT(device->vk_device, memory, 0.0f));
             }
-            TRACE("prio: e: no memory or not yet evictable\n");
         }
     }
 
@@ -5561,7 +5557,7 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_SetResidencyPriority(d3d12_device_
                 struct d3d12_heap *heap_object = impl_from_ID3D12Heap(heap_iface);
 
                 if (!heap_object->priority.allows_dynamic_residency)
-                    {TRACE("prio: srp: heap not dynamic\n");continue;}
+                    continue;
 
                 spinlock_acquire(&heap_object->priority.spinlock);
                 heap_object->priority.d3d12priority = priority;
@@ -5578,7 +5574,7 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_SetResidencyPriority(d3d12_device_
                 struct d3d12_resource *resource_object = impl_from_ID3D12Resource(resource_iface);
 
                 if (!resource_object->priority.allows_dynamic_residency)
-                    {TRACE("prio: srp: resource not dynamic\n");continue;}
+                    continue;
 
                 spinlock_acquire(&resource_object->priority.spinlock);
                 resource_object->priority.d3d12priority = priority;
@@ -5593,10 +5589,8 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_SetResidencyPriority(d3d12_device_
 
             if (memory)
             {
-                TRACE("prio: srp: new priority is %x\n", priority);
                 VK_CALL(vkSetDeviceMemoryPriorityEXT(device->vk_device, memory, vkd3d_convert_to_vk_prio(priority)));
             }
-            else TRACE("prio: srp: no memory!\n");
         }
     }
 
