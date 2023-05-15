@@ -5150,7 +5150,7 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_MakeResident(d3d12_device_iface *i
                     priority = heap_object->priority.d3d12priority;
                     heap_object->priority.residency_count++;
                     spinlock_release(&heap_object->priority.spinlock);
-                }
+                } else TRACE("prio: mr: heap not dynamic\n");
 
                 ID3D12Heap_Release(heap_iface);
             }
@@ -5165,15 +5165,17 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_MakeResident(d3d12_device_iface *i
                     priority = resource_object->priority.d3d12priority;
                     resource_object->priority.residency_count++;
                     spinlock_release(&resource_object->priority.spinlock);
-                }
+                } else TRACE("prio: mr: resource not dynamic\n");
 
                 ID3D12Resource_Release(resource_iface);
             }
 
             if (memory)
             {
+                TRACE("prio: mr: new priority is %x\n", priority);
                 VK_CALL(vkSetDeviceMemoryPriorityEXT(device->vk_device, memory, vkd3d_convert_to_vk_prio(priority)));
             }
+            else TRACE("prio: mr: no memory!\n");
         }
     }
 
@@ -5220,7 +5222,7 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_Evict(d3d12_device_iface *iface,
                     spinlock_acquire(&heap_object->priority.spinlock);
                     now_evicted = (0 == --heap_object->priority.residency_count);
                     spinlock_release(&heap_object->priority.spinlock);
-                }
+                } else TRACE("prio: e: heap not dynamic\n");
 
                 ID3D12Heap_Release(heap_iface);
             }
@@ -5234,15 +5236,17 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_Evict(d3d12_device_iface *iface,
                     spinlock_acquire(&resource_object->priority.spinlock);
                     now_evicted = (0 == --resource_object->priority.residency_count);
                     spinlock_release(&resource_object->priority.spinlock);
-                }
+                } else TRACE("prio: e: resource not dynamic\n");
 
                 ID3D12Resource_Release(resource_iface);
             }
 
             if (memory && now_evicted)
             {
+                TRACE("prio: e: evicted!\n");
                 VK_CALL(vkSetDeviceMemoryPriorityEXT(device->vk_device, memory, 0.0f));
             }
+            TRACE("prio: e: no memory or not yet evictable\n");
         }
     }
 
@@ -5565,7 +5569,7 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_SetResidencyPriority(d3d12_device_
                         memory = heap_object->allocation.device_allocation.vk_memory;
                     }
                     spinlock_release(&heap_object->priority.spinlock);
-                }
+                } else TRACE("prio: srp: heap not dynamic\n");
 
                 ID3D12Heap_Release(heap_iface);
             }
@@ -5582,15 +5586,17 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_SetResidencyPriority(d3d12_device_
                         memory = resource_object->mem.device_allocation.vk_memory;
                     }
                     spinlock_release(&resource_object->priority.spinlock);
-                }
+                } else TRACE("prio: srp: resource not dynamic\n");
 
                 ID3D12Resource_Release(resource_iface);
             }
 
             if (memory)
             {
+                TRACE("prio: srp: new priority is %x\n", priority);
                 VK_CALL(vkSetDeviceMemoryPriorityEXT(device->vk_device, memory, vkd3d_convert_to_vk_prio(priority)));
             }
+            else TRACE("prio: srp: no memory!\n");
         }
     }
 

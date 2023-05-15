@@ -3028,6 +3028,8 @@ HRESULT d3d12_resource_create_committed(struct d3d12_device *device, const D3D12
                     (heap_flags & D3D12_HEAP_FLAG_CREATE_NOT_ZEROED) ?
                     "Committed Texture (not-zeroed)" : "Committed Texture (zeroed)");
         }
+
+        TRACE("prio: committed texture (size=%d)\n", allocate_info.memory_requirements.size);
     }
     else
     {
@@ -3054,12 +3056,15 @@ HRESULT d3d12_resource_create_committed(struct d3d12_device *device, const D3D12
 
         object->res.vk_buffer = object->mem.resource.vk_buffer;
         object->res.va = object->mem.resource.va;
+
+        TRACE("prio: committed buffer (size=%d)\n", allocate_info.heap_desc.SizeInBytes);
     }
 
     object->priority.allows_dynamic_residency = 
         device->device_info.pageable_device_memory_features.pageableDeviceLocalMemory &&
         object->mem.chunk == NULL /* not suballocated */ &&
         (device->memory_properties.memoryTypes[object->mem.device_allocation.vk_memory_type].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    TRACE("prio: committed resource: allows_dynamic_residency=%d\n", object->priority.allows_dynamic_residency);
 
     *resource = object;
     return S_OK;
