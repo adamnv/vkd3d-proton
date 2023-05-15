@@ -17,7 +17,6 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#include "vulkan/vulkan_core.h"
 #define VKD3D_DBG_CHANNEL VKD3D_DBG_CHANNEL_API
 
 #include <float.h>
@@ -3060,7 +3059,7 @@ HRESULT d3d12_resource_create_committed(struct d3d12_device *device, const D3D12
     object->priority.allows_dynamic_residency = 
         device->device_info.pageable_device_memory_features.pageableDeviceLocalMemory &&
         object->mem.chunk == NULL /* not suballocated */ &&
-        device->memory_properties.memoryTypes[object->mem.device_allocation.vk_memory_type].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+        (device->memory_properties.memoryTypes[object->mem.device_allocation.vk_memory_type].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     *resource = object;
     return S_OK;

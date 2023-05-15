@@ -281,7 +281,7 @@ static HRESULT d3d12_heap_init(struct d3d12_heap *heap, struct d3d12_device *dev
     if (FAILED(hr = vkd3d_private_store_init(&heap->private_store)))
         return hr;
 
-    if (device->vk_info.EXT_pageable_device_local_memory)
+    if (device->device_info.memory_priority_features.memoryPriority)
     {
         /* this clause isn't trying to reproduce some precise d3d12 behavior,
            though it's hinted in the public docs that a similar prioritization
@@ -309,7 +309,7 @@ static HRESULT d3d12_heap_init(struct d3d12_heap *heap, struct d3d12_device *dev
     heap->priority.allows_dynamic_residency = 
         device->device_info.pageable_device_memory_features.pageableDeviceLocalMemory &&
         heap->allocation.chunk == NULL /* not suballocated */ &&
-        device->memory_properties.memoryTypes[heap->allocation.device_allocation.vk_memory_type].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+        (device->memory_properties.memoryTypes[heap->allocation.device_allocation.vk_memory_type].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     d3d12_device_add_ref(heap->device);
     return S_OK;
