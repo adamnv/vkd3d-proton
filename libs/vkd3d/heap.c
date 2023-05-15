@@ -292,10 +292,8 @@ static HRESULT d3d12_heap_init(struct d3d12_heap *heap, struct d3d12_device *dev
             heap->priority.d3d12priority = D3D12_RESIDENCY_PRIORITY_HIGH | adjust;
         }
 
-        if (heap->desc.Flags & D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT) {
-            TRACE("prio: creating heap non-resident!\n");
+        if (heap->desc.Flags & D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT)
             heap->priority.residency_count = 0;
-        }
     }
 
     alloc_info.vk_memory_priority = heap->priority.residency_count ?
@@ -312,7 +310,6 @@ static HRESULT d3d12_heap_init(struct d3d12_heap *heap, struct d3d12_device *dev
         device->device_info.pageable_device_memory_features.pageableDeviceLocalMemory &&
         heap->allocation.chunk == NULL /* not suballocated */ &&
         (device->memory_properties.memoryTypes[heap->allocation.device_allocation.vk_memory_type].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    TRACE("prio: heap (size=%d): allows_dynamic_residency=%d\n", heap->desc.SizeInBytes, heap->priority.allows_dynamic_residency);
 
     d3d12_device_add_ref(heap->device);
     return S_OK;
