@@ -2837,6 +2837,9 @@ static HRESULT d3d12_resource_create(struct d3d12_device *device, uint32_t flags
         uint32_t adjust = vkd3d_get_priority_adjust(resource_size);
 
         object->priority.d3d12priority = D3D12_RESIDENCY_PRIORITY_HIGH | adjust;
+
+        if (object->heap_flags & D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT)
+            object->priority.residency_count = 0;
     }
 
     d3d12_device_add_ref(device);
@@ -2936,7 +2939,7 @@ HRESULT d3d12_resource_create_committed(struct d3d12_device *device, const D3D12
         else
             allocate_info.heap_flags |= D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES;
 
-        allocate_info.vk_memory_priority = vkd3d_convert_to_vk_prio(object->priority.d3d12priority);
+        allocate_info.vk_memory_priority = object->priority.residency_count ? vkd3d_convert_to_vk_prio(object->priority.d3d12priority) : 0.f;
 
         if (heap_flags & D3D12_HEAP_FLAG_SHARED)
         {
@@ -3038,7 +3041,7 @@ HRESULT d3d12_resource_create_committed(struct d3d12_device *device, const D3D12
         allocate_info.heap_desc.Alignment = desc->Alignment ? desc->Alignment : D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
         allocate_info.heap_desc.SizeInBytes = align(desc->Width, allocate_info.heap_desc.Alignment);
         allocate_info.heap_desc.Flags = heap_flags | D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
-        allocate_info.vk_memory_priority = vkd3d_convert_to_vk_prio(object->priority.d3d12priority);
+        allocate_info.vk_memory_priority = object->priority.residency_count ? vkd3d_convert_to_vk_prio(object->priority.d3d12priority) : 0.f;
 
         /* Be very careful with suballocated buffers. */
         if ((vkd3d_config_flags & VKD3D_CONFIG_FLAG_ZERO_MEMORY_WORKAROUNDS_COMMITTED_BUFFER_UAV) &&

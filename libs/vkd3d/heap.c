@@ -297,7 +297,7 @@ static HRESULT d3d12_heap_init(struct d3d12_heap *heap, struct d3d12_device *dev
     }
 
     alloc_info.vk_memory_priority = heap->priority.residency_count ?
-        vkd3d_convert_to_vk_prio(heap->priority.d3d12priority) : 0.0f;
+        vkd3d_convert_to_vk_prio(heap->priority.d3d12priority) : 0.f;
 
     if (FAILED(hr = vkd3d_allocate_heap_memory(device,
             &device->memory_allocator, &alloc_info, &heap->allocation)))
