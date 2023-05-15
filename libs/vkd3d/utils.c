@@ -656,14 +656,14 @@ uint32_t vkd3d_get_priority_adjust(VkDeviceSize size)
     return min((size / (10 * 1048576)), 0xFFFFUL);
 }
 
-float vkd3d_lerp_u32_to_float(uint32_t uval, uint32_t ustart, uint32_t uend, float fstart, float fend)
+static float vkd3d_lerp_u32_to_float(uint32_t uval, uint32_t ustart, uint32_t uend, float fstart, float fend)
 {
     float a;
 
     if (uval <= ustart) return fstart;
     else if (uval >= uend) return fend;
     
-    a = (uval - ustart) / (float)(uend - ustart);
+    a = (float)(uval - ustart) / (float)(uend - ustart);
     return fstart * (1.0f - a) + (fend * a);
 }
 
