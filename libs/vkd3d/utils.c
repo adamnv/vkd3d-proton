@@ -676,22 +676,25 @@ float vkd3d_convert_to_vk_prio(D3D12_RESIDENCY_PRIORITY d3d12prio)
        0.5 (the default vk prio) so neither kind wins without explicit prio */
     if (d3d12prio <= D3D12_RESIDENCY_PRIORITY_NORMAL)
         result = vkd3d_lerp_u32_to_float(d3d12prio,
-            D3D12_RESIDENCY_PRIORITY_MINIMUM, D3D12_RESIDENCY_PRIORITY_NORMAL,
+            0, D3D12_RESIDENCY_PRIORITY_NORMAL,
             0.001f, 0.500f);
     else if (d3d12prio <= D3D12_RESIDENCY_PRIORITY_HIGH)
         result = vkd3d_lerp_u32_to_float(d3d12prio,
             D3D12_RESIDENCY_PRIORITY_NORMAL, D3D12_RESIDENCY_PRIORITY_HIGH,
-            0.500f, 0.520f);
+            0.500f, 0.700f);
+    else if (d3d12prio <= D3D12_RESIDENCY_PRIORITY_HIGH+0xFFFF)
+        result = vkd3d_lerp_u32_to_float(d3d12prio,
+            D3D12_RESIDENCY_PRIORITY_HIGH, D3D12_RESIDENCY_PRIORITY_HIGH+0xFFFF,
+            0.700f, 0.800f);
     else
         result = vkd3d_lerp_u32_to_float(d3d12prio,
-            D3D12_RESIDENCY_PRIORITY_HIGH, D3D12_RESIDENCY_PRIORITY_MAXIMUM,
-            0.521f, 1.000f);
+            D3D12_RESIDENCY_PRIORITY_HIGH+0xFFFF, UINT32_MAX,
+            0.800f, 1.000f);
 
-    /* Note: The conversion from a UINT32 d3d priority to a float32 vk priority
-       loses around 9 of the 16 lower-order bits which encode size-based subranking,
-       and thus most of the practical benefit (except for massive heaps/resources).
-       Numerous workarounds for this are feasible.  The separation between 0.520
-       and 0.521 in the output mapping above is one of them. */
+    /* Note: A naive conversion from a UINT32 d3d priority to a float32 vk priority
+       loses around 9 of the 16 lower-order bits which encode size-based subranking
+       in the D3D12_RESIDENCY_PRIORITY_HIGH to HIGH+0xFFFF domain.  The above expansion
+       of that domain into a proportionally wider range works around this. */
 
     /* 0.0f is reserved for explicitly evicted resources */
     return max(min(result, 1.f), 0.001f);
