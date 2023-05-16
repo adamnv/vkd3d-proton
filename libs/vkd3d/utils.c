@@ -675,21 +675,29 @@ float vkd3d_convert_to_vk_prio(D3D12_RESIDENCY_PRIORITY d3d12prio)
     /* align D3D12_RESIDENCY_PRIORITY_NORMAL (the default d3d12 prio) with
        0.5 (the default vk prio) so neither kind wins without explicit prio */
     if (d3d12prio <= D3D12_RESIDENCY_PRIORITY_NORMAL)
+    {
         result = vkd3d_lerp_u32_to_float(d3d12prio,
             0, D3D12_RESIDENCY_PRIORITY_NORMAL,
             0.001f, 0.500f);
+    }
     else if (d3d12prio <= D3D12_RESIDENCY_PRIORITY_HIGH)
+    {
         result = vkd3d_lerp_u32_to_float(d3d12prio,
             D3D12_RESIDENCY_PRIORITY_NORMAL, D3D12_RESIDENCY_PRIORITY_HIGH,
             0.500f, 0.700f);
-    else if (d3d12prio <= D3D12_RESIDENCY_PRIORITY_HIGH+0xFFFF)
+    }
+    else if (d3d12prio <= D3D12_RESIDENCY_PRIORITY_HIGH+0xffff)
+    {
         result = vkd3d_lerp_u32_to_float(d3d12prio,
-            D3D12_RESIDENCY_PRIORITY_HIGH, D3D12_RESIDENCY_PRIORITY_HIGH+0xFFFF,
+            D3D12_RESIDENCY_PRIORITY_HIGH, D3D12_RESIDENCY_PRIORITY_HIGH+0xffff,
             0.700f, 0.800f);
+    }
     else
+    {
         result = vkd3d_lerp_u32_to_float(d3d12prio,
             D3D12_RESIDENCY_PRIORITY_HIGH+0xFFFF, UINT32_MAX,
             0.800f, 1.000f);
+    }
 
     /* Note: A naive conversion from a UINT32 d3d priority to a float32 vk priority
        loses around 9 of the 16 lower-order bits which encode size-based subranking

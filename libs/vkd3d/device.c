@@ -5128,6 +5128,9 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_MakeResident(d3d12_device_iface *i
     struct d3d12_device *device = impl_from_ID3D12Device(iface);
     const struct vkd3d_vk_device_procs *vk_procs = &device->vk_procs;
 
+    TRACE("iface %p, object_count %u, objects %p\n",
+            iface, object_count, objects);
+
     if (device->device_info.pageable_device_memory_features.pageableDeviceLocalMemory)
     {
         uint32_t i;
@@ -5184,6 +5187,9 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_EnqueueMakeResident(d3d12_device_i
         D3D12_RESIDENCY_FLAGS flags, UINT num_objects, ID3D12Pageable *const *objects,
         ID3D12Fence *fence_to_signal, UINT64 fence_value_to_signal)
 {
+    TRACE("iface %p, flags %#x, num_objects %u, objects %p, fence_to_signal %p, fence_value_to_signal %"PRIu64"\n",
+            iface, flags, num_objects, objects, fence_to_signal, fence_value_to_signal);
+
     /* note: we ignore flags/D3D12_RESIDENCY_FLAG_DENY_OVERBUDGET; it involves
        knowing if the app will be made over-budget.  We act as if it won't.  Could perhaps
        use VK_EXT_memory_budget but don't have an app in-hand that clearly cares. */
@@ -5198,6 +5204,9 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_Evict(d3d12_device_iface *iface,
 {
     struct d3d12_device *device = impl_from_ID3D12Device(iface);
     const struct vkd3d_vk_device_procs *vk_procs = &device->vk_procs;
+
+    TRACE("iface %p, object_count %u, objects %p\n",
+            iface, object_count, objects);
 
     if (device->device_info.pageable_device_memory_features.pageableDeviceLocalMemory)
     {
@@ -5540,11 +5549,14 @@ static HRESULT STDMETHODCALLTYPE d3d12_device_SetResidencyPriority(d3d12_device_
 {
     struct d3d12_device *device = impl_from_ID3D12Device(iface);
 
+    TRACE("iface %p, object_count %u, objects %p, priorities %p\n",
+            iface, object_count, objects, priorities);
+
     if (device->device_info.pageable_device_memory_features.pageableDeviceLocalMemory)
     {
         const struct vkd3d_vk_device_procs *vk_procs = &device->vk_procs;
         uint32_t i;
-        
+
         for (i = 0; i < object_count; i++)
         {
             D3D12_RESIDENCY_PRIORITY priority = priorities[i];

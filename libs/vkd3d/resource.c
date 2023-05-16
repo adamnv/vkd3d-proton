@@ -2838,8 +2838,11 @@ static HRESULT d3d12_resource_create(struct d3d12_device *device, uint32_t flags
 
         object->priority.d3d12priority = D3D12_RESIDENCY_PRIORITY_HIGH | adjust;
 
-        if (object->heap_flags & D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT)
-            object->priority.residency_count = 0;
+        if (device->device_info.device_info.pageable_device_memory_features.pageableDeviceLocalMemory)
+        {
+            if (object->heap_flags & D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT)
+                object->priority.residency_count = 0;
+        }
     }
 
     d3d12_device_add_ref(device);

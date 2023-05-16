@@ -292,8 +292,11 @@ static HRESULT d3d12_heap_init(struct d3d12_heap *heap, struct d3d12_device *dev
             heap->priority.d3d12priority = D3D12_RESIDENCY_PRIORITY_HIGH | adjust;
         }
 
-        if (heap->desc.Flags & D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT)
-            heap->priority.residency_count = 0;
+        if (device->device_info.device_info.pageable_device_memory_features.pageableDeviceLocalMemory)
+        {
+            if (heap->desc.Flags & D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT)
+                heap->priority.residency_count = 0;
+        }
     }
 
     alloc_info.vk_memory_priority = heap->priority.residency_count ?
